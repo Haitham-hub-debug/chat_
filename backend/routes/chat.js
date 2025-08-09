@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const Message = require("../models/Message");
+
 
 // middleware لحماية المسارات
 function authenticateToken(req, res, next) {
@@ -26,5 +28,22 @@ router.get('/users', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
+                                               router.get('/messages/:senderId/:receiverId', authenticateToken, async (req, res) => {
+                                                const { senderId, receiverId } = req.params;
+                                                try {
+                                                  const messages = await Message.find({
+                                                    $or: [
+                                                      { from: senderId, to: receiverId },
+                                                      { from: receiverId, to: senderId }
+                                                    ]
+                                                  }).sort({ createdAt: 1 });
+
+                                                  res.json(messages);
+                                                } catch (err) {
+                                                  console.error("خطأ في جلب الرسائل:", err);
+                                                  res.status(500).json({ error: 'Server error' });
+                                                }
+                                              });
+
 
 module.exports = router;

@@ -21,6 +21,8 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
+//app.use("/api/chat", require("./routes/chat"));
+
 
 // ================== Socket.io ==================
 let onlineUsers = {};

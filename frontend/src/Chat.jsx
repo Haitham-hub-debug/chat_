@@ -1,4 +1,3 @@
-// Chat.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -10,7 +9,10 @@ const Chat = () => {
   const navigate = useNavigate();
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [currentUserId, setCurrentUserId] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState("");
+  
+  // استرجاع selectedUserId من localStorage
+  const [selectedUserId, setSelectedUserId] = useState(localStorage.getItem("selectedUserId") || "");
+  
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -42,7 +44,6 @@ const Chat = () => {
     });
 
     socket.on("receiveMessage", (msg) => {
-      // إذا الرسالة لك أو من طرفك الحالي
       if (
         (msg.from === selectedUserId && msg.to === currentUserId) ||
         (msg.from === currentUserId && msg.to === selectedUserId)
@@ -58,33 +59,31 @@ const Chat = () => {
   }, [currentUserId, selectedUserId]);
 
   // جلب كل المستخدمين
- // جلب المستخدمين مع التحقق من شكل البيانات
-useEffect(() => {
-  if (!token) return;
+  useEffect(() => {
+    if (!token) return;
 
-  axios
-    .get("http://localhost:5000/api/chat/users", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => {
-      console.log("المستخدمون:", res.data);
-      if (Array.isArray(res.data)) {
-        setAllUsers(res.data);
-      } else if (Array.isArray(res.data.users)) {
-        setAllUsers(res.data.users);
-      } else {
-        setAllUsers([]); // فارغ إذا غير معروف الشكل
-      }
-    })
-    .catch((err) => console.error("خطأ في جلب المستخدمين:", err));
-}, [token]);
+    axios
+      .get("http://localhost:5000/api/chat/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        if (Array.isArray(res.data)) {
+          setAllUsers(res.data);
+        } else if (Array.isArray(res.data.users)) {
+          setAllUsers(res.data.users);
+        } else {
+          setAllUsers([]);
+        }
+      })
+      .catch((err) => console.error("خطأ في جلب المستخدمين:", err));
+  }, [token]);
 
-      
-
-  // جلب الرسائل بين المستخدمين عند تغيير المحادثة
+  // جلب الرسائل عند تغيير المحادثة
   useEffect(() => {
     if (currentUserId && selectedUserId) {
       fetchMessages();
+      // تخزين selectedUserId في localStorage
+      localStorage.setItem("selectedUserId", selectedUserId);
     } else {
       setMessages([]);
     }
@@ -104,7 +103,7 @@ useEffect(() => {
     }
   };
 
-  // إرسال رسالة
+  // إرسال رسالة بدون إضافة مكررة في الواجهة
   const handleSend = () => {
     if (!newMessage.trim()) return;
 
@@ -119,18 +118,13 @@ useEffect(() => {
       content: newMessage,
     };
 
-    // أضف الرسالة مباشرة عندك
-    setMessages((prev) => [...prev, msg]);
-
-    // أرسلها للطرف الآخر عبر Socket.io
     socket.emit("sendMessage", msg);
-
-    // فرغ خانة الكتابة
     setNewMessage("");
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("selectedUserId");
     navigate("/");
   };
 
@@ -141,11 +135,34 @@ useEffect(() => {
 
       <h3>المستخدمون:</h3>
       {allUsers
-        .filter((u) => u._id !== currentUserId)
+        .filter((u) => u._id !== currentUserId&& !onlineUsers.includes(u._id))
         .map((user) => (
           <div
             key={user._id}
-            onClick={() => setSelectedUserId(user._id)}
+            onClick={() => {
+              setSelectedUserId(user._id);
+              localStorage.setItem("selectedUserId", user._id);
+            }}
+            style={{
+              cursor: "pointer",
+              fontWeight: selectedUserId === user._id ? "bold" : "normal",
+              color: "red",
+            }}
+          >
+            {user.username || user.email || user._id}
+          </div>
+        ))}
+
+        <h3>النشطين:</h3>
+      {allUsers
+        .filter((u) => u._id !== currentUserId&& onlineUsers.includes(u._id))
+        .map((user) => (
+          <div
+            key={user._id}
+            onClick={() => {
+              setSelectedUserId(user._id);
+              localStorage.setItem("selectedUserId", user._id);
+            }}
             style={{
               cursor: "pointer",
               fontWeight: selectedUserId === user._id ? "bold" : "normal",
@@ -157,7 +174,6 @@ useEffect(() => {
         ))}
 
       <hr />
-      
 
       <h4>
         {selectedUserId
@@ -181,8 +197,7 @@ useEffect(() => {
               margin: "5px 0",
             }}
           >
-            <strong>{msg.from === currentUserId ? "أنا" : "هو"}:</strong>{" "}
-            {msg.content}
+            <strong>{msg.from === currentUserId ? "أنا" : "هو"}:</strong> {msg.content}
           </div>
         ))}
       </div>
