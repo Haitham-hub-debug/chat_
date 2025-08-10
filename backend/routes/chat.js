@@ -5,6 +5,30 @@ const jwt = require("jsonwebtoken");
 const Message = require("../models/Message");
 
 
+
+//zeit
+function nachrichtenLoeschen() {
+ setInterval(nachrichtenLoeschen, 24 * 60 * 60 * 1000);
+
+Message.deleteMany({ createdAt: { $lt: oneMinuteAgo } })
+
+    .then(result => {
+      console.log(`Chat-Nachrichten wurden gelöscht: ${result.deletedCount}`);
+      // Hier kannst du nur im Backend Log schreiben oder weitere Aktionen machen
+    })
+    .catch(err => {
+      console.error("Fehler beim Löschen der Nachrichten:", err);
+    });
+}
+
+setInterval(nachrichtenLoeschen, 24 * 60 * 60 * 1000);
+
+
+
+
+
+
+
 // middleware لحماية المسارات
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
