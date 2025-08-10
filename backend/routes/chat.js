@@ -8,7 +8,7 @@ const Message = require("../models/Message");
 
 //zeit
 function nachrichtenLoeschen() {
- setInterval(nachrichtenLoeschen, 24 * 60 * 60 * 1000);
+ setInterval(nachrichtenLoeschen, 23 * 60 * 60 * 1000);
 
 Message.deleteMany({ createdAt: { $lt: oneMinuteAgo } })
 
@@ -21,7 +21,7 @@ Message.deleteMany({ createdAt: { $lt: oneMinuteAgo } })
     });
 }
 
-setInterval(nachrichtenLoeschen, 24 * 60 * 60 * 1000);
+setInterval(nachrichtenLoeschen, 23 * 60 * 60 * 1000);
 
 
 
