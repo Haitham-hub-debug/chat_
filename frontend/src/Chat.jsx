@@ -48,6 +48,10 @@ const Chat = () => {
     socket.on("updateOnlineUsers", (users) => {
       setOnlineUsers(users);
     });
+    ///
+    return () => socket.disconnect();
+   [userId]
+    ///
 
     socket.on("receiveMessage", (msg) => {
       if (
@@ -181,6 +185,27 @@ const Chat = () => {
             {user.username || user.email || user._id}
           </div>
         ))}
+                                                                              <div>
+  <h3>Online Users:</h3>
+  <ul>
+    {onlineUsers.map((user) => (
+      <li
+        key={user._id}
+        onClick={() => {
+          setSelectedUserId(user._id);
+          localStorage.setItem("selectedUserId", user._id);
+        }}
+        style={{
+          cursor: "pointer",
+          fontWeight: selectedUserId === user._id ? "bold" : "normal",
+          color: "green", // كلهم أونلاين بما أنهم في onlineUsers
+        }}
+      >
+        {user.username || user.email || user._id}
+      </li>
+    ))}
+  </ul>
+</div>
 
         <h3>النشطين:</h3>
       {allUsers
@@ -227,7 +252,7 @@ const Chat = () => {
   }}
 >
   <strong>{msg.from.username}:</strong>
-  <strong>{msg.fromName}:</strong> {msg.content}
+  <strong>{msg.fromName}</strong> {msg.content}
    
 </div>
 

@@ -25,15 +25,20 @@ app.use("/api/chat", chatRoutes);
 
 
 // ================== Socket.io ==================
-let onlineUsers = {};
+let onlineUsers  = {};
 
 io.on("connection", (socket) => {
   console.log("🔌 مستخدم متصل:", socket.id);
 
   // استقبال المعرف عند الاتصال
-  socket.on("userOnline", (userId) => {
-    onlineUsers[userId] = socket.id;
-    io.emit("updateOnlineUsers", Object.keys(onlineUsers));
+  socket.on("userOnline",async (userId) => {
+    onlineUsers[socket.id] = userId;
+
+
+
+      const usersData = await User.find({ _id: { $in: Object.values(onlineUsers) } })
+                                .select("username email _id");
+    io.emit("updateOnlineUsers", usersData);
   });
 socket.on("sendMessage", async ({ from, to, content }) => {
   try {
@@ -68,15 +73,13 @@ socket.on("sendMessage", async ({ from, to, content }) => {
 
   // قطع الاتصال
   socket.on("disconnect", () => {
-    for (let userId in onlineUsers) {
-      if (onlineUsers[userId] === socket.id) {
-        delete onlineUsers[userId];
-        break;
-      }
-    }
-    io.emit("updateOnlineUsers", Object.keys(onlineUsers));
+    delete onlineUsers[socket.id];
+
+    const usersData = Object.values(onlineUsers);
+    io.emit("updateOnlineUsers", usersData);
   });
 });
+
 
 mongoose
   .connect(process.env.MONGO_URI)
