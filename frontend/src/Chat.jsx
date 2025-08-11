@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
+
+//import { useEffect, useRef } from 'react';
 
 const socket = io("http://localhost:5000");
 
@@ -14,9 +16,13 @@ const Chat = () => {
   const [selectedUserId, setSelectedUserId] = useState(localStorage.getItem("selectedUserId") || "");
   
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [messages, setMessages] = useState([]);
+   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [allUsers, setAllUsers] = useState([]);
+
+
+     const chatEndRef = useRef(null); // هنا عرفنا الـ ref
+ 
 
   // فك التوكن للحصول على الـ userId
   useEffect(() => {
@@ -128,6 +134,29 @@ const Chat = () => {
     navigate("/");
   };
 
+
+
+
+ 
+/////////
+
+// تمرير تلقائي للأسفل عند تحديث الرسائل
+ useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+///////
+   
+  
+
+   
+
+  
+  
+
+
+
+
   return (
     <div style={{ padding: "20px" }}>
       <h2>مرحبا بك في الدردشة</h2>
@@ -190,15 +219,19 @@ const Chat = () => {
         }}
       >
         {messages.map((msg, index) => (
-          <div
-            key={index}
-            style={{
-              textAlign: msg.from === currentUserId ? "right" : "left",
-              margin: "5px 0",
-            }}
-          >
-            <strong>{msg.from === currentUserId ? "أنا" : "هو"}:</strong> {msg.content}
-          </div>
+     <div
+  key={index}
+  style={{
+    textAlign: msg.from._id === currentUserId ? "right" : "left",
+    margin: "5px 0",
+  }}
+>
+  <strong>{msg.from.username}:</strong>
+  <strong>{msg.fromName}:</strong> {msg.content}
+   
+</div>
+
+
         ))}
       </div>
 
@@ -210,7 +243,18 @@ const Chat = () => {
       />
       <button onClick={handleSend}>إرسال</button>
     </div>
-  );
+
+
+    );
 };
+
+
+
+
+    
+
+
+
+
 
 export default Chat;

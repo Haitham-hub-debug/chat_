@@ -35,27 +35,36 @@ io.on("connection", (socket) => {
     onlineUsers[userId] = socket.id;
     io.emit("updateOnlineUsers", Object.keys(onlineUsers));
   });
+socket.on("sendMessage", async ({ from, to, content }) => {
+  try {
+    // نجيب اسم المستخدم اللي أرسل الرسالة
+    const fromUser = await User.findById(from);
 
-  // استقبال رسالة
-  socket.on("sendMessage", async ({ from, to, content }) => {
     const toSocketId = onlineUsers[to];
 
-    // إرسال مباشر للطرف الآخر
+    // نجهز بيانات الرسالة مع اسم المرسل
+    const messageData = { 
+      from, 
+      fromName: fromUser ? fromUser.username : "غير معروف", 
+      to, 
+      content 
+    };
+
+    // نرسل الرسالة للطرف الآخر
     if (toSocketId) {
-      io.to(toSocketId).emit("receiveMessage", { from, to, content });
+      io.to(toSocketId).emit("receiveMessage", messageData);
     }
 
-    // إرسال للطرف المرسل للتأكيد
-    socket.emit("receiveMessage", { from, to, content });
+    // نرسل للطرف المرسل للتأكيد
+    socket.emit("receiveMessage", messageData);
 
-    // حفظ الرسالة في MongoDB
-    try {
-      await Message.create({ from, to, content });
-      console.log("✅ تم حفظ الرسالة:", { from, to, content });
-    } catch (err) {
-      console.error("❌ خطأ في حفظ الرسالة:", err);
-    }
-  });
+    // نحفظ الرسالة في قاعدة البيانات
+    await Message.create({ from, to, content });
+    console.log("✅ تم حفظ الرسالة:", messageData);
+  } catch (err) {
+    console.error("❌ خطأ في حفظ الرسالة:", err);
+  }
+});
 
   // قطع الاتصال
   socket.on("disconnect", () => {

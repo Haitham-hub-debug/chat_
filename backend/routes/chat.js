@@ -7,21 +7,22 @@ const Message = require("../models/Message");
 
 
 //zeit
+
 function nachrichtenLoeschen() {
- setInterval(nachrichtenLoeschen, 24 * 60 * 60 * 1000);
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000); // vor 24 Stunden
 
-Message.deleteMany({ createdAt: { $lt: oneMinuteAgo } })
-
+  Message.deleteMany({ createdAt: { $lt: oneDayAgo } })
     .then(result => {
       console.log(`Chat-Nachrichten wurden gelöscht: ${result.deletedCount}`);
-      // Hier kannst du nur im Backend Log schreiben oder weitere Aktionen machen
     })
     .catch(err => {
       console.error("Fehler beim Löschen der Nachrichten:", err);
     });
 }
 
+// Alle 24 Stunden ausführen
 setInterval(nachrichtenLoeschen, 24 * 60 * 60 * 1000);
+
 
 
 
@@ -52,22 +53,36 @@ router.get('/users', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
-                                               router.get('/messages/:senderId/:receiverId', authenticateToken, async (req, res) => {
-                                                const { senderId, receiverId } = req.params;
-                                                try {
-                                                  const messages = await Message.find({
-                                                    $or: [
-                                                      { from: senderId, to: receiverId },
-                                                      { from: receiverId, to: senderId }
-                                                    ]
-                                                  }).sort({ createdAt: 1 });
+                                              router.get('/messages/:senderId/:receiverId', authenticateToken, async (req, res) => {
+  try {
+    const { senderId, receiverId } = req.params;
 
-                                                  res.json(messages);
-                                                } catch (err) {
-                                                  console.error("خطأ في جلب الرسائل:", err);
-                                                  res.status(500).json({ error: 'Server error' });
-                                                }
-                                              });
+    const messages = await Message.find({
+      $or: [
+        { from: senderId, to: receiverId },
+        { from: receiverId, to: senderId }
+        
+
+      ]
+    })
+    .populate("from", "username")
+    .populate("to", "username")
+    .sort({ createdAt: 1 });
+    console.log();
+
+    res.json(messages);
+  } catch (err) {
+    console.error("خطأ في جلب الرسائل:", err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+///////
+
+
+
+                                              
 
 
 module.exports = router;
