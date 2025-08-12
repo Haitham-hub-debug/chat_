@@ -41,32 +41,31 @@ const Chat = () => {
 
   // تسجيل المستخدم كمتصل واستقبال الرسائل والمستخدمين الأونلاين
   useEffect(() => {
-    if (!currentUserId) return;
+  if (!currentUserId) return;
 
-    socket.emit("userOnline", currentUserId);
+  socket.emit("userOnline", currentUserId);
 
-    socket.on("updateOnlineUsers", (users) => {
-      setOnlineUsers(users);
-    });
-    ///
-    return () => socket.disconnect();
-   [userId]
-    ///
+socket.on("updateOnlineUsers", (users) => {
+  setOnlineUsers(users.filter(user => user._id !== currentUserId));
+});
 
-    socket.on("receiveMessage", (msg) => {
-      if (
-        (msg.from === selectedUserId && msg.to === currentUserId) ||
-        (msg.from === currentUserId && msg.to === selectedUserId)
-      ) {
-        setMessages((prev) => [...prev, msg]);
-      }
-    });
 
-    return () => {
-      socket.off("updateOnlineUsers");
-      socket.off("receiveMessage");
-    };
-  }, [currentUserId, selectedUserId]);
+
+ socket.on("receiveMessage", (msg) => {
+  if (
+    (msg.from === selectedUserId && msg.to === currentUserId) ||
+    (msg.from === currentUserId && msg.to === selectedUserId)
+  ) {
+    setMessages((prev) => [...prev, msg]);
+  }
+});
+
+
+  return () => {
+    socket.off("updateOnlineUsers");
+    socket.off("receiveMessage");
+  };
+}, [currentUserId, selectedUserId]);
 
   // جلب كل المستخدمين
   useEffect(() => {
@@ -89,29 +88,37 @@ const Chat = () => {
   }, [token]);
 
   // جلب الرسائل عند تغيير المحادثة
-  useEffect(() => {
-    if (currentUserId && selectedUserId) {
-      fetchMessages();
-      // تخزين selectedUserId في localStorage
-      localStorage.setItem("selectedUserId", selectedUserId);
-    } else {
-      setMessages([]);
-    }
-  }, [currentUserId, selectedUserId]);
+useEffect(() => {
+  const savedUserId = localStorage.getItem("selectedUserId");
+  if (currentUserId && savedUserId) {
+    setSelectedUserId(savedUserId); // إعادة تحميل آخر محادثة
+    fetchMessages(savedUserId);
+  }
+}, [currentUserId]);
 
-  const fetchMessages = async () => {
-    try {
-      const res = await axios.get(
-        `http://localhost:5000/api/chat/messages/${currentUserId}/${selectedUserId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setMessages(res.data || []);
-    } catch (err) {
-      console.error("خطأ في جلب الرسائل:", err);
-    }
-  };
+useEffect(() => {
+  if (currentUserId && selectedUserId) {
+    fetchMessages(selectedUserId);
+    localStorage.setItem("selectedUserId", selectedUserId);
+  } else {
+    setMessages([]);
+  }
+}, [selectedUserId]);
+
+  const fetchMessages = async (userId = selectedUserId) => {
+  try {
+    const res = await axios.get(
+      `http://localhost:5000/api/chat/messages/${currentUserId}/${userId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    setMessages(res.data || []);
+  } catch (err) {
+    console.error("خطأ في جلب الرسائل:", err);
+  }
+};
+
 
   // إرسال رسالة بدون إضافة مكررة في الواجهة
   const handleSend = () => {
@@ -144,10 +151,11 @@ const Chat = () => {
  
 /////////
 
-// تمرير تلقائي للأسفل عند تحديث الرسائل
- useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+useEffect(() => {
+  if (chatEndRef.current) {
+    chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+  }
+}, [messages]);
 
 ///////
    
@@ -207,25 +215,7 @@ const Chat = () => {
   </ul>
 </div>
 
-        <h3>النشطين:</h3>
-      {allUsers
-        .filter((u) => u._id !== currentUserId&& onlineUsers.includes(u._id))
-        .map((user) => (
-          <div
-            key={user._id}
-            onClick={() => {
-              setSelectedUserId(user._id);
-              localStorage.setItem("selectedUserId", user._id);
-            }}
-            style={{
-              cursor: "pointer",
-              fontWeight: selectedUserId === user._id ? "bold" : "normal",
-              color: onlineUsers.includes(user._id) ? "green" : "gray",
-            }}
-          >
-            {user.username || user.email || user._id}
-          </div>
-        ))}
+       
 
       <hr />
 
@@ -243,9 +233,9 @@ const Chat = () => {
           padding: "5px",
         }}
       >
-        {messages.map((msg, index) => (
-     <div
-  key={index}
+        {messages.map((msg) => (
+  <div
+    key={msg._id}
   style={{
     textAlign: msg.from._id === currentUserId ? "right" : "left",
     margin: "5px 0",
@@ -253,11 +243,14 @@ const Chat = () => {
 >
   <strong>{msg.from.username}:</strong>
   <strong>{msg.fromName}</strong> {msg.content}
+
    
 </div>
 
 
         ))}
+          <div ref={chatEndRef}></div>
+
       </div>
 
       <input
