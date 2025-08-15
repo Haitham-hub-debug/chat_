@@ -44,7 +44,7 @@ function ForgotPassword() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <label>أدخل بريدك الإلكتروني:</label>
+        <label>Eemai shriben bitte </label>
         <br />
         <input
           type="email"
