@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-
+import F_pass from "./F_pass";
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");

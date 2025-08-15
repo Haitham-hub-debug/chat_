@@ -9,6 +9,14 @@ const chatRoutes = require("./routes/chat");
 const Message = require("./models/Message");
 const User = require("./models/User");
 
+
+//gmail
+const nodemailer = require("nodemailer");
+
+
+
+
+
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
@@ -85,8 +93,51 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ تم الاتصال بقاعدة البيانات");
-    server.listen(process.env.PORT || 5000, () =>
-      console.log(`🚀 السيرفر يعمل على المنفذ ${process.env.PORT || 5000}`)
+    server.listen(process.env.PORT || 5001, () =>
+      console.log(`🚀 السيرفر يعمل على المنفذ ${process.env.PORT || 5001}`)
     );
   })
   .catch((err) => console.error("❌ خطأ في الاتصال:", err));
+
+
+
+  //////f_pass
+ app.post("/F_pass", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ messages: ["الرجاء إدخال البريد الإلكتروني"] });
+  }
+
+  try {
+    // إعداد النقل باستخدام Gmail
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER, // بريدك
+        pass: process.env.GMAIL_PASS, // كلمة مرور التطبيقات
+          
+      },
+      
+    });
+    console.log(process.env.GMAIL_USER, process.env.GMAIL_PASS);
+
+
+    // إعداد البريد
+    const mailOptions = {
+      from: `"دعم الموقع" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: "إعادة تعيين كلمة المرور",
+      text: "اضغط الرابط لإعادة تعيين كلمة المرور: http://localhost:5173/reset-password",
+    };
+
+    // إرسال البريد
+    await transporter.sendMail(mailOptions);
+
+    res.json({ messages: ["تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك"] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ messages: ["حدث خطأ أثناء إرسال البريد"] });
+  }
+});
+

@@ -5,7 +5,7 @@ import io from "socket.io-client";
 
 //import { useEffect, useRef } from 'react';
 
-const socket = io("http://localhost:5000");
+const socket = io("http://localhost:5001");
 
 const Chat = () => {
   const navigate = useNavigate();
