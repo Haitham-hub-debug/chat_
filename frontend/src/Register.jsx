@@ -13,7 +13,7 @@ export default function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/auth/anmelden", {
+      await axios.post("http://localhost:5001/api/auth/anmelden", {
         username,
         email,
         password,

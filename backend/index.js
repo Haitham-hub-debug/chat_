@@ -35,58 +35,74 @@ app.use("/api/chat", chatRoutes);
 // ================== Socket.io ==================
 let onlineUsers  = {};
 
+
+
 io.on("connection", (socket) => {
   console.log("🔌 مستخدم متصل:", socket.id);
 
-  // استقبال المعرف عند الاتصال
-  socket.on("userOnline",async (userId) => {
-    onlineUsers[socket.id] = userId;
+  socket.on("userOnline", async (userId) => {
+    onlineUsers[userId] = socket.id;
 
-
-
-      const usersData = await User.find({ _id: { $in: Object.values(onlineUsers) } })
+    const usersData = await User.find({ _id: { $in: Object.keys(onlineUsers) } })
                                 .select("username email _id");
     io.emit("updateOnlineUsers", usersData);
   });
-socket.on("sendMessage", async ({ from, to, content }) => {
-  try {
-    // نجيب اسم المستخدم اللي أرسل الرسالة
-    const fromUser = await User.findById(from);
 
-    const toSocketId = onlineUsers[to];
+  socket.on("sendMessage", async ({ from, to, content }) => {
+    try {
+      const fromUser = await User.findById(from);
 
-    // نجهز بيانات الرسالة مع اسم المرسل
-    const messageData = { 
-      from, 
-      fromName: fromUser ? fromUser.username : "غير معروف", 
-      to, 
-      content 
-    };
+      const savedMessage = await Message.create({
+        from,
+        to,
+        content,
+      });
 
-    // نرسل الرسالة للطرف الآخر
-    if (toSocketId) {
-      io.to(toSocketId).emit("receiveMessage", messageData);
+      const messageData = {
+        _id: savedMessage._id,
+        from,
+        fromName: fromUser ? fromUser.username : "غير معروف",
+        to,
+        content,
+        createdAt: savedMessage.createdAt,
+      };
+
+      if (onlineUsers[to]) {
+        io.to(onlineUsers[to]).emit("receiveMessage", messageData);
+      }
+
+      if (onlineUsers[from]) {
+        io.to(onlineUsers[from]).emit("receiveMessage", messageData);
+      }
+
+      console.log("✅ تم إرسال الرسالة:", messageData);
+    } catch (err) {
+      console.error("❌ خطأ في حفظ الرسالة:", err);
+    }
+  });
+
+  // ✅ حدث الخروج (disconnect) لازم يكون هون جوا connection
+  socket.on("disconnect", async () => {
+    for (let userId in onlineUsers) {
+      if (onlineUsers[userId] === socket.id) {
+        delete onlineUsers[userId];
+        break;
+      }
     }
 
-    // نرسل للطرف المرسل للتأكيد
-    socket.emit("receiveMessage", messageData);
-
-    // نحفظ الرسالة في قاعدة البيانات
-    await Message.create({ from, to, content });
-    console.log("✅ تم حفظ الرسالة:", messageData);
-  } catch (err) {
-    console.error("❌ خطأ في حفظ الرسالة:", err);
-  }
-});
-
-  // قطع الاتصال
-  socket.on("disconnect", () => {
-    delete onlineUsers[socket.id];
-
-    const usersData = Object.values(onlineUsers);
+    const usersData = await User.find({ _id: { $in: Object.keys(onlineUsers) } })
+                                .select("username email _id");
     io.emit("updateOnlineUsers", usersData);
+
+    console.log("❌ مستخدم انفصل:", socket.id);
   });
 });
+
+
+
+
+ 
+
 
 
 mongoose

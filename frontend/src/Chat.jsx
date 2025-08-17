@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
 
-//import { useEffect, useRef } from 'react';
+
 
 const socket = io("http://localhost:5001");
 
@@ -51,14 +51,18 @@ socket.on("updateOnlineUsers", (users) => {
 
 
 
- socket.on("receiveMessage", (msg) => {
+socket.on("receiveMessage", (msg) => {
+  const fromId = msg.from._id || msg.from;
+  const toId = msg.to._id || msg.to;
+
   if (
-    (msg.from === selectedUserId && msg.to === currentUserId) ||
-    (msg.from === currentUserId && msg.to === selectedUserId)
+    (fromId === selectedUserId && toId === currentUserId) ||
+    (fromId === currentUserId && toId === selectedUserId)
   ) {
     setMessages((prev) => [...prev, msg]);
   }
 });
+
 
 
   return () => {
@@ -72,7 +76,7 @@ socket.on("updateOnlineUsers", (users) => {
     if (!token) return;
 
     axios
-      .get("http://localhost:5000/api/chat/users", {
+      .get("http://localhost:5001/api/chat/users", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -108,7 +112,7 @@ useEffect(() => {
   const fetchMessages = async (userId = selectedUserId) => {
   try {
     const res = await axios.get(
-      `http://localhost:5000/api/chat/messages/${currentUserId}/${userId}`,
+      `http://localhost:5001/api/chat/messages/${currentUserId}/${userId}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -176,29 +180,34 @@ useEffect(() => {
 
       <h3>المستخدمون:</h3>
       {allUsers
-        .filter((u) => u._id !== currentUserId&& !onlineUsers.includes(u._id))
-        .map((user) => (
-          <div
-            key={user._id}
-            onClick={() => {
-              setSelectedUserId(user._id);
-              localStorage.setItem("selectedUserId", user._id);
-            }}
-            style={{
-              cursor: "pointer",
-              fontWeight: selectedUserId === user._id ? "bold" : "normal",
-              color: "red",
-            }}
-          >
-            {user.username || user.email || user._id}
-          </div>
-        ))}
+  .filter(
+    (u) =>
+      u._id !== currentUserId &&
+      !onlineUsers.some((onU) => onU._id === u._id)
+  )
+  .map((user) => (
+    <div
+      key={user._id}
+      onClick={() => {
+        setSelectedUserId(user._id);
+        localStorage.setItem("selectedUserId", user._id);
+      }}
+      style={{
+        cursor: "pointer",
+        fontWeight: selectedUserId === user._id ? "bold" : "normal",
+        color: "red",
+      }}
+    >
+      {user.username || user.email || user._id}
+    </div>
+  ))}
+
                                                                               <div>
   <h3>Online Users:</h3>
   <ul>
-    {onlineUsers.map((user) => (
+    {onlineUsers.map((user ,index) => (
       <li
-        key={user._id}
+        key={user._id || index}
         onClick={() => {
           setSelectedUserId(user._id);
           localStorage.setItem("selectedUserId", user._id);
@@ -233,19 +242,20 @@ useEffect(() => {
           padding: "5px",
         }}
       >
-        {messages.map((msg) => (
+      {messages.map((msg, index) => (
   <div
-    key={msg._id}
+  key={msg._id || index}
   style={{
-    textAlign: msg.from._id === currentUserId ? "right" : "left",
+    textAlign: (msg.from._id || msg.from) === currentUserId ? "right" : "left",
     margin: "5px 0",
   }}
 >
-  <strong>{msg.from.username}:</strong>
-  <strong>{msg.fromName}</strong> {msg.content}
-
-   
+  
+  <strong>{msg.fromName}:</strong> 
+  <strong>{msg.userId}</strong>{msg.content}
 </div>
+
+
 
 
         ))}
