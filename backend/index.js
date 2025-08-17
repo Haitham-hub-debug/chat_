@@ -38,16 +38,27 @@ let onlineUsers  = {};
 
 
 io.on("connection", (socket) => {
-  console.log("🔌 مستخدم متصل:", socket.id);
+  console.log("🔌user is onlin:", socket.id);
 
   socket.on("userOnline", async (userId) => {
+    socket.userId = userId; // نخزن userId مباشرة
     onlineUsers[userId] = socket.id;
 
+    await User.findByIdAndUpdate(userId, { isOnline: true ,status: "online" });
+
+    const usersData = await User.find().select("username email _id isOnline status lastSeen");
+    io.emit("updateOnlineUsers", usersData);
+    console.log("✅ now is Online:", userId);
+  });
+          //////
+           socket.on("changeStatus", async ({ userId, status }) => {
+    await User.findByIdAndUpdate(userId, { status });
     const usersData = await User.find({ _id: { $in: Object.keys(onlineUsers) } })
-                                .select("username email _id");
+                                .select("username email _id isOnline status lastSeen");
     io.emit("updateOnlineUsers", usersData);
   });
-
+          //////
+  // إرسال رسالة
   socket.on("sendMessage", async ({ from, to, content }) => {
     try {
       const fromUser = await User.findById(from);
@@ -67,6 +78,7 @@ io.on("connection", (socket) => {
         createdAt: savedMessage.createdAt,
       };
 
+      // إرسال الرسالة للطرفين إذا كانوا أونلاين
       if (onlineUsers[to]) {
         io.to(onlineUsers[to]).emit("receiveMessage", messageData);
       }
@@ -75,31 +87,45 @@ io.on("connection", (socket) => {
         io.to(onlineUsers[from]).emit("receiveMessage", messageData);
       }
 
-      console.log("✅ تم إرسال الرسالة:", messageData);
+      console.log("✅ The message has been sent:", messageData);
     } catch (err) {
-      console.error("❌ خطأ في حفظ الرسالة:", err);
+      console.error("❌ Error saving the message:", err);
     }
   });
 
-  // ✅ حدث الخروج (disconnect) لازم يكون هون جوا connection
+  // قطع الاتصال
+  socket.on("logout", async (userId) => {
+    delete onlineUsers[userId];
+    await User.findByIdAndUpdate(userId, { isOnline: false, lastSeen: new Date() });
+
+    const usersData = await User.find().select("username email _id isOnline status lastSeen");
+    io.emit("updateOnlineUsers", usersData);
+    console.log("🚪 User logged out:", userId);
+  });
+
   socket.on("disconnect", async () => {
-    for (let userId in onlineUsers) {
-      if (onlineUsers[userId] === socket.id) {
-        delete onlineUsers[userId];
-        break;
-      }
+    if (socket.userId) {
+      delete onlineUsers[socket.userId];
+      await User.findByIdAndUpdate(socket.userId, { isOnline: false, lastSeen: new Date() });
+      console.log("❌ User has disconnected:", socket.userId);
     }
 
-    const usersData = await User.find({ _id: { $in: Object.keys(onlineUsers) } })
-                                .select("username email _id");
+    const usersData = await User.find().select("username email _id isOnline status lastSeen");
     io.emit("updateOnlineUsers", usersData);
 
-    console.log("❌ مستخدم انفصل:", socket.id);
-  });
+    ///
+    socket.on("changeStatus", async ({ userId, status }) => {
+  // حفظ الحالة في قاعدة البيانات
+  await User.findByIdAndUpdate(userId, { status });
+
+  // تحديث الجميع
+  const usersData = await User.find().select("username email _id status");
+  io.emit("updateOnlineUsers", usersData);
 });
 
-
-
+    ///
+  });
+});
 
  
 
@@ -108,9 +134,9 @@ io.on("connection", (socket) => {
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("✅ تم الاتصال بقاعدة البيانات");
+    console.log("✅ The database has been contacted");
     server.listen(process.env.PORT || 5001, () =>
-      console.log(`🚀 السيرفر يعمل على المنفذ ${process.env.PORT || 5001}`)
+      console.log(` The server is running on the port. ${process.env.PORT || 5001}`)
     );
   })
   .catch((err) => console.error("❌ خطأ في الاتصال:", err));
@@ -130,8 +156,8 @@ mongoose
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.GMAIL_USER, // بريدك
-        pass: process.env.GMAIL_PASS, // كلمة مرور التطبيقات
+        user: process.env.GMAIL_USER, // 
+        pass: process.env.GMAIL_PASS, // 
           
       },
       

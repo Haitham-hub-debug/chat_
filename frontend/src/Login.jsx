@@ -25,6 +25,7 @@ const [showFPass, setShowFPass] = useState(false); // حالة لإظهار نم
       console.error(err);
       setError(err.response?.data?.message || "حدث خطأ");
     }
+   
   };
 
   return (
@@ -51,6 +52,8 @@ const [showFPass, setShowFPass] = useState(false); // حالة لإظهار نم
             <br/>
             <button type="submit">تسجيل الدخول</button>
           </form>
+           {error && <p style={{ color: "red" }}>{error}</p>}
+
            <br/>
            <br/>
           <button onClick={() => setShowFPass(true)}>

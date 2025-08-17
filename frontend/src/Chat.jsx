@@ -5,13 +5,20 @@ import io from "socket.io-client";
 
 
 
-const socket = io("http://localhost:5001");
+//const socket = io("http://localhost:5001"); 
 
 const Chat = () => {
   const navigate = useNavigate();
+
+
+   const [socket, setSocket] = useState(null);
+
+
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [currentUserId, setCurrentUserId] = useState("");
-  
+
+
+   const [currentStatus, setCurrentStatus] = useState("offline");
   // استرجاع selectedUserId من localStorage
   const [selectedUserId, setSelectedUserId] = useState(localStorage.getItem("selectedUserId") || "");
   
@@ -39,37 +46,43 @@ const Chat = () => {
     }
   }, [token]);
 
+
+
+
   // تسجيل المستخدم كمتصل واستقبال الرسائل والمستخدمين الأونلاين
+  // إنشاء الـ socket وتسجيل المستخدم كمتصل
   useEffect(() => {
-  if (!currentUserId) return;
+    if (!currentUserId) return;
 
-  socket.emit("userOnline", currentUserId);
+    const s = io("http://localhost:5001");
+    setSocket(s);
 
-socket.on("updateOnlineUsers", (users) => {
-  setOnlineUsers(users.filter(user => user._id !== currentUserId));
-});
+    s.emit("userOnline", currentUserId);
 
+    s.on("updateOnlineUsers", (users) => {
+      setOnlineUsers(users.filter(u => u._id !== currentUserId));
+     
+      setAllUsers(users);  // ← هذا هو التعديل الأهم
+           setAllUsers(usersData); // هاد مهم! يحدث كل المستخدمين
 
+    });
 
-socket.on("receiveMessage", (msg) => {
-  const fromId = msg.from._id || msg.from;
-  const toId = msg.to._id || msg.to;
+    s.on("receiveMessage", (msg) => {
+      const fromId = msg.from._id || msg.from;
+      const toId = msg.to._id || msg.to;
 
-  if (
-    (fromId === selectedUserId && toId === currentUserId) ||
-    (fromId === currentUserId && toId === selectedUserId)
-  ) {
-    setMessages((prev) => [...prev, msg]);
-  }
-});
+      if ((fromId === selectedUserId && toId === currentUserId) || 
+          (fromId === currentUserId && toId === selectedUserId)) {
+        setMessages(prev => [...prev, msg]);
+      }
+    });
 
-
-
-  return () => {
-    socket.off("updateOnlineUsers");
-    socket.off("receiveMessage");
-  };
-}, [currentUserId, selectedUserId]);
+    return () => {
+      // عند ترك الصفحة أو تحديثها، نسجل خروج المستخدم ونغلق الاتصال
+      s.emit("logout", currentUserId);
+      s.disconnect();
+    };
+  }, [currentUserId, selectedUserId]);
 
   // جلب كل المستخدمين
   useEffect(() => {
@@ -90,6 +103,13 @@ socket.on("receiveMessage", (msg) => {
       })
       .catch((err) => console.error("خطأ في جلب المستخدمين:", err));
   }, [token]);
+
+
+    /////////////////////////////////////////////////////////////////////////////////
+  useEffect(() => {
+  const me = allUsers.find(u => u._id === currentUserId);
+  if (me) setCurrentStatus(me.status || "offline");
+}, [allUsers, currentUserId]);
 
   // جلب الرسائل عند تغيير المحادثة
 useEffect(() => {
@@ -146,6 +166,9 @@ useEffect(() => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("selectedUserId");
+    socket.emit("logout", currentUserId);
+socket.disconnect(); // يسكر الـ socket تماماً
+
     navigate("/");
   };
 
@@ -174,18 +197,37 @@ useEffect(() => {
 
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>مرحبا بك في الدردشة</h2>
-      <button onClick={handleLogout}>تسجيل الخروج</button>
+    <div style={{ display: "flex", height: "100vh" }}>
+  
+  <div
+    style={{
+      width: "250px",
+      borderRight: "1px solid #ccc",
+      padding: "10px",
+      boxSizing: "border-box",
+    }}
+  >
+    <div style={{ padding: "10px", borderBottom: "1px solid #ccc" }}>
+  <h2>مرحبا، {allUsers.find(u => u._id === currentUserId)?.username || "مستخدم"}!</h2>
+</div>
 
-      <h3>المستخدمون:</h3>
-      {allUsers
-  .filter(
-    (u) =>
-      u._id !== currentUserId &&
-      !onlineUsers.some((onU) => onU._id === u._id)
-  )
-  .map((user) => (
+    {/* هنا وضعنا تغيير الحالة بشكل منفصل */}
+<div>
+  <label>حالتك:</label>
+  <select value={currentStatus} 
+          onChange={(e) => {
+            setCurrentStatus(e.target.value);
+            socket.emit("changeStatus", { userId: currentUserId, status: e.target.value });
+          }}>
+    <option value="online">متصل</option>
+    <option value="offline">غير متصل</option>
+    <option value="busy">مشغول</option>
+  </select>
+</div>
+   <h3>المستخدمون:</h3>
+{allUsers
+  .filter(u => u._id !== currentUserId)
+  .map(user => (
     <div
       key={user._id}
       onClick={() => {
@@ -194,83 +236,123 @@ useEffect(() => {
       }}
       style={{
         cursor: "pointer",
-        fontWeight: selectedUserId === user._id ? "bold" : "normal",
-        color: "red",
+        display: "flex",
+        flexDirection: "column",
+        margin: "5px 0",
+        padding: "5px",
+        borderBottom: "1px solid #ccc"
       }}
     >
-      {user.username || user.email || user._id}
+      {/* اسم المستخدم */}
+      <span style={{ fontWeight: "bold", fontSize: "14px" }}>
+        {user.username || user.email || user._id}
+      </span>
+
+      {/* آخر ظهور */}
+      <span style={{ fontSize: "12px", color: "gray" }}>
+        {user.isOnline
+          ? "متصل الآن ✅"
+          : user.lastSeen
+          ? `آخر ظهور: ${new Date(user.lastSeen).toLocaleString()}`
+          : "غير متصل"}
+      </span>
     </div>
   ))}
 
-                                                                              <div>
-  <h3>Online Users:</h3>
-  <ul>
-    {onlineUsers.map((user ,index) => (
-      <li
-        key={user._id || index}
+
+
+
+
+</div>
+
+
+<div style={{ width: "250px", borderRight: "1px solid #ccc", padding: "10px" }}>
+  <h3>المستخدمون المتصلون:</h3>
+  {allUsers
+    .filter(u => u._id !== currentUserId && u.status === "online") // المتصلون فقط
+    .map(user => (
+      <div
+        key={user._id}
         onClick={() => {
           setSelectedUserId(user._id);
           localStorage.setItem("selectedUserId", user._id);
         }}
         style={{
           cursor: "pointer",
+          margin: "5px 0",
           fontWeight: selectedUserId === user._id ? "bold" : "normal",
-          color: "green", // كلهم أونلاين بما أنهم في onlineUsers
+          display: "flex",
+          alignItems: "center",
         }}
       >
-        {user.username || user.email || user._id}
-      </li>
-    ))}
-  </ul>
-</div>
-
-       
-
-      <hr />
-
-      <h4>
-        {selectedUserId
-          ? `الدردشة مع: ${allUsers.find((u) => u._id === selectedUserId)?.username || selectedUserId}`
-          : "اختر مستخدمًا لبدء الدردشة"}
-      </h4>
-      <div
-        style={{
-          border: "1px solid #ccc",
-          height: "300px",
-          overflowY: "scroll",
-          marginBottom: "10px",
-          padding: "5px",
-        }}
-      >
-      {messages.map((msg, index) => (
-  <div
-  key={msg._id || index}
-  style={{
-    textAlign: (msg.from._id || msg.from) === currentUserId ? "right" : "left",
-    margin: "5px 0",
-  }}
->
-  
-  <strong>{msg.fromName}:</strong> 
-  <strong>{msg.userId}</strong>{msg.content}
-</div>
-
-
-
-
-        ))}
-          <div ref={chatEndRef}></div>
-
+        <span
+          style={{
+            width: "10px",
+            height: "10px",
+            borderRadius: "50%",
+            backgroundColor: "green", // دائماً أخضر لأنه online
+            display: "inline-block",
+            marginRight: "8px",
+          }}
+        ></span>
+        <span>{user.username}</span>
       </div>
+    ))}
 
-      <input
-        value={newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
-        placeholder="اكتب رسالة..."
-        style={{ width: "70%", marginRight: "5px" }}
-      />
-      <button onClick={handleSend}>إرسال</button>
+  {allUsers.filter(u => u._id !== currentUserId && u.status === "online").length === 0 && (
+    <p>لا يوجد مستخدمون متصلون حالياً</p>
+  )}
+</div>
+
+
+  {/* ===== Chat Area ===== */}
+  <div style={{ flex: 1, padding: "20px" }}>
+    <h2>مرحبا بك في الدردشة</h2>
+    <button onClick={handleLogout}>تسجيل الخروج</button>
+
+    <h4>
+      {selectedUserId
+        ? `الدردشة مع: ${
+            allUsers.find((u) => u._id === selectedUserId)?.username ||
+            selectedUserId
+          }`
+        : "اختر مستخدمًا لبدء الدردشة"}
+    </h4>
+
+    <div
+      style={{
+        border: "1px solid #ccc",
+        height: "80%",
+        overflowY: "scroll",
+        marginBottom: "10px",
+        padding: "5px",
+      }}
+    >
+      {messages.map((msg, index) => (
+        <div
+          key={msg._id || index}
+          style={{
+            textAlign: msg.from === currentUserId ? "right" : "left",
+            margin: "5px 0",
+          }}
+        >
+          <strong>{msg.fromName}:</strong> {msg.content}
+        </div>
+      ))}
+      <div ref={chatEndRef}></div>
     </div>
+
+    <input
+      value={newMessage}
+      onChange={(e) => setNewMessage(e.target.value)}
+      placeholder="اكتب رسالة..."
+      style={{ width: "70%", marginRight: "5px" }}
+    />
+    <button onClick={handleSend}>إرسال</button>
+  </div>
+</div>
+
+
 
 
     );

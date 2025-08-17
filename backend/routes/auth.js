@@ -42,7 +42,7 @@ router.post("/login", async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "المستخدم غير موجود" });
+    if (!user)return res.status(400).json({ message: "المستخدم غير موجود" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "كلمة المرور خاطئة" });
