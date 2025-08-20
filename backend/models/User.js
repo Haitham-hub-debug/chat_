@@ -11,6 +11,8 @@ const UserSchema = new mongoose.Schema({
 
   // إضافة حقل الـ status
  status: { type: String, enum: ["online", "offline", "busy"], default: "offline" },
+
+ 
 });
 
 module.exports = mongoose.model("User", UserSchema);

@@ -31,6 +31,8 @@ const Chat = () => {
      const chatEndRef = useRef(null); // هنا عرفنا الـ ref
  
 
+
+
   // فك التوكن للحصول على الـ userId
   useEffect(() => {
     if (!token) {
@@ -63,7 +65,7 @@ const Chat = () => {
       setOnlineUsers(users.filter(u => u._id !== currentUserId));
      
       setAllUsers(users);  // ← هذا هو التعديل الأهم
-           setAllUsers(usersData); // هاد مهم! يحدث كل المستخدمين
+       
 
     });
 
@@ -214,15 +216,18 @@ useEffect(() => {
     {/* هنا وضعنا تغيير الحالة بشكل منفصل */}
 <div>
   <label>حالتك:</label>
-  <select value={currentStatus} 
-          onChange={(e) => {
-            setCurrentStatus(e.target.value);
-            socket.emit("changeStatus", { userId: currentUserId, status: e.target.value });
-          }}>
-    <option value="online">متصل</option>
-    <option value="offline">غير متصل</option>
-    <option value="busy">مشغول</option>
-  </select>
+  <select
+  value={currentStatus}
+  onChange={(e) => {
+    const newStatus = e.target.value;
+    setCurrentStatus(newStatus);
+    socket.emit("changeStatus", { userId: currentUserId, status: newStatus });
+  }}
+>
+  <option value="online">متصل</option>
+  <option value="busy">مشغول</option>
+  <option value="offline">غير متصل</option>
+</select>
 </div>
    <h3>المستخدمون:</h3>
 {allUsers
@@ -328,16 +333,21 @@ useEffect(() => {
         padding: "5px",
       }}
     >
-      {messages.map((msg, index) => (
-        <div
-          key={msg._id || index}
-          style={{
-            textAlign: msg.from === currentUserId ? "right" : "left",
-            margin: "5px 0",
-          }}
-        >
-          <strong>{msg.fromName}:</strong> {msg.content}
-        </div>
+     {messages.map((msg) => (
+  <div
+    key={msg._id}
+    style={{
+      textAlign: msg.from === currentUserId ? "right" : "left",
+      margin: "8px 0",
+    }}
+  >
+    <div>
+      <strong>{msg.from === currentUserId ? "أنا" : msg.fromName}:</strong>
+    </div>
+    <div>{msg.content}</div>
+  </div>
+
+
       ))}
       <div ref={chatEndRef}></div>
     </div>

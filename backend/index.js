@@ -51,12 +51,17 @@ io.on("connection", (socket) => {
     console.log("✅ now is Online:", userId);
   });
           //////
-           socket.on("changeStatus", async ({ userId, status }) => {
+          socket.on("changeStatus", async ({ userId, status }) => {
     await User.findByIdAndUpdate(userId, { status });
-    const usersData = await User.find({ _id: { $in: Object.keys(onlineUsers) } })
-                                .select("username email _id isOnline status lastSeen");
-    io.emit("updateOnlineUsers", usersData);
-  });
+    //const usersData = await User.find({ _id: { $in: Object.keys(onlineUsers) } })
+      //                         .select("username email _id isOnline status lastSeen");
+      //io.emit("updateOnlineUsers", usersData);
+      const usersData = await User.find().select("username email _id isOnline status lastSeen");
+io.emit("updateOnlineUsers", usersData);
+
+    // أرسل التحديث لبقية المستخدمين
+  io.emit("statusChanged", { userId, status });
+ });
           //////
   // إرسال رسالة
   socket.on("sendMessage", async ({ from, to, content }) => {
@@ -77,51 +82,42 @@ io.on("connection", (socket) => {
         content,
         createdAt: savedMessage.createdAt,
       };
+      /////////
+      
+    // ابعت الرسالة للمستلم
+    io.to(onlineUsers[to]).emit("message", messageData);
 
+    // وابعتها كمان للمرسل عشان تنعرض عنده
+    io.to(onlineUsers[from]).emit("message", messageData);
+
+  } catch (err) {
+    console.error("Error sending message:", err);
+  }
+});
+      ////////
       // إرسال الرسالة للطرفين إذا كانوا أونلاين
-      if (onlineUsers[to]) {
-        io.to(onlineUsers[to]).emit("receiveMessage", messageData);
-      }
-
-      if (onlineUsers[from]) {
-        io.to(onlineUsers[from]).emit("receiveMessage", messageData);
-      }
-
-      console.log("✅ The message has been sent:", messageData);
-    } catch (err) {
-      console.error("❌ Error saving the message:", err);
-    }
-  });
+     
 
   // قطع الاتصال
-  socket.on("logout", async (userId) => {
-    delete onlineUsers[userId];
-    await User.findByIdAndUpdate(userId, { isOnline: false, lastSeen: new Date() });
+ socket.on("logout", async (userId) => {
+  delete onlineUsers[userId];
+  await User.findByIdAndUpdate(userId, { isOnline: false, status: "offline", lastSeen: new Date() });
 
-    const usersData = await User.find().select("username email _id isOnline status lastSeen");
-    io.emit("updateOnlineUsers", usersData);
-    console.log("🚪 User logged out:", userId);
-  });
+  const usersData = await User.find().select("username email _id isOnline status lastSeen");
+  io.emit("updateOnlineUsers", usersData);
+  console.log("🚪 User logged out:", userId);
+});
+   
+  
 
-  socket.on("disconnect", async () => {
-    if (socket.userId) {
-      delete onlineUsers[socket.userId];
-      await User.findByIdAndUpdate(socket.userId, { isOnline: false, lastSeen: new Date() });
+ socket.on("disconnect", async () => {
+  if (socket.userId) {
+    delete onlineUsers[socket.userId];
+    await User.findByIdAndUpdate(socket.userId, { isOnline: false, status: "offline", lastSeen: new Date() });
       console.log("❌ User has disconnected:", socket.userId);
     }
 
-    const usersData = await User.find().select("username email _id isOnline status lastSeen");
-    io.emit("updateOnlineUsers", usersData);
-
-    ///
-    socket.on("changeStatus", async ({ userId, status }) => {
-  // حفظ الحالة في قاعدة البيانات
-  await User.findByIdAndUpdate(userId, { status });
-
-  // تحديث الجميع
-  const usersData = await User.find().select("username email _id status");
-  io.emit("updateOnlineUsers", usersData);
-});
+          
 
     ///
   });

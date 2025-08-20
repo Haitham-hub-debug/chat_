@@ -42,6 +42,19 @@ function authenticateToken(req, res, next) {
     next();
   });
 }
+////////////////
+// مثال وسط للتحقق قبل السماح بالدردشة
+const ensureFriends = async (req, res, next) => {
+  const { meId, otherId } = req.params; // أو من البودي
+  const me = await User.findById(meId);
+  if (!me.friends.map(id => id.toString()).includes(otherId)) {
+    return res.status(403).json({ msg: "لا يمكن الدردشة إلا بين الأصدقاء" });
+  }
+  next();
+};
+
+
+////////
 
 // GET /api/chat/users
 router.get('/users', authenticateToken, async (req, res) => {
