@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import"./styles/register.css";; 
 
 export default function Register() {
   const navigate = useNavigate();
@@ -28,32 +29,38 @@ export default function Register() {
     }
   };
 
+  
   return (
-    <form onSubmit={handleRegister}>
-      <input
-        type="text"
-        placeholder="اسم المستخدم"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        required
-      />
-      <input
-        type="email"
-        placeholder="البريد الإلكتروني"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="كلمة المرور"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      <button type="submit">تسجيل حساب</button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {success && <p style={{ color: "green" }}>{success}</p>}
-    </form>
+    <div className="register-background">
+      <div className="register-container">
+        <h2>إنشاء حساب</h2>
+        <form onSubmit={handleRegister} className="register-form">
+          <input
+            type="text"
+            placeholder="اسم المستخدم"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+          <input
+            type="email"
+            placeholder="البريد الإلكتروني"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="كلمة المرور"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button type="submit">تسجيل حساب</button>
+        </form>
+        {error && <p className="error">{error}</p>}
+        {success && <p className="success">{success}</p>}
+      </div>
+    </div>
   );
 }

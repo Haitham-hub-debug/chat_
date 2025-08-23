@@ -2,15 +2,17 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import F_pass from "./F_pass";
+import "./styles/login.css";
 
 
+ 
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-const [showFPass, setShowFPass] = useState(false); // حالة لإظهار نموذج نسيت كلمة المرور
+  const [showFPass, setShowFPass] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,16 +27,21 @@ const [showFPass, setShowFPass] = useState(false); // حالة لإظهار نم
       console.error(err);
       setError(err.response?.data?.message || "حدث خطأ");
     }
-   
   };
 
   return (
-     <div>
-      {!showFPass && (
-     <>
 
-    <form onSubmit={handleLogin}>
+
+
+ 
+
+
+    <div className="login-container">
+      {!showFPass && (
+        <>
+          <form className="login-form" onSubmit={handleLogin}>
             <input
+              className="login-input"
               type="email"
               placeholder="البريد الإلكتروني"
               value={email}
@@ -42,31 +49,33 @@ const [showFPass, setShowFPass] = useState(false); // حالة لإظهار نم
               required
             />
             <input
+              className="login-input"
               type="password"
               placeholder="كلمة المرور"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <br/>
-            <br/>
-            <button type="submit">تسجيل الدخول</button>
+            <button className="login-btn" type="submit">تسجيل الدخول</button>
           </form>
-           {error && <p style={{ color: "red" }}>{error}</p>}
 
-           <br/>
-           <br/>
-          <button onClick={() => setShowFPass(true)}>
+          {error && <p className="login-error">{error}</p>}
+
+          <button
+            className="fpass-btn"
+            onClick={() => setShowFPass(true)}
+          >
             نسيت كلمة المرور؟
           </button>
 
-          <p>
+          <p className="login-register">
             لا تملك حساب؟ <Link to="/register">سجل هنا</Link>
           </p>
         </>
       )}
 
-      {showFPass && <F_pass />} {/* يظهر نموذج إعادة تعيين كلمة المرور */}
-  </div>
+      {showFPass && <F_pass />}
+    </div>
+    
   );
 }

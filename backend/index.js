@@ -85,10 +85,10 @@ io.emit("updateOnlineUsers", usersData);
       /////////
       
     // ابعت الرسالة للمستلم
-    io.to(onlineUsers[to]).emit("message", messageData);
+    io.to(onlineUsers[to]).emit("receiveMessage", messageData);
 
     // وابعتها كمان للمرسل عشان تنعرض عنده
-    io.to(onlineUsers[from]).emit("message", messageData);
+    io.to(onlineUsers[from]).emit("receiveMessage", messageData);
 
   } catch (err) {
     console.error("Error sending message:", err);
