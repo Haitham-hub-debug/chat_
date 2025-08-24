@@ -1,22 +1,79 @@
-/* الخلفية العامة */
 .chat-background {
   width: 100%;
   height: 100vh;
-  background-image: url('https://images.unsplash.com/photo-1755589066709-ec12ec11baa1?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHw0NXx8fGVufDB8fHx8fA%3D%3D');
+  background-image: url('https://images.unsplash.com/photo-1754756356063-103a6019f346?w=500&auto=format&fit=crop&q=60');
   background-size: cover;
   background-position: center;
   display: flex;
-  justify-content: center; /* مركزي المحتوى أفقياً */
-  align-items: center;     /* مركزي المحتوى عمودياً */
+  justify-content: center;
+  align-items: center;
 }
 
-/* صندوق المحادثة */
 .chat-container {
   display: flex;
-  width: 90%;
+  width: 95%;
   height: 90%;
-  background-color: rgba(255, 255, 255, 0.9); /* شبه شفاف */
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   border-radius: 10px;
-  overflow: hidden;
+}
+
+.chat-sidebar {
+  width: 250px;
+  border-right: 1px solid #ccc;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.85); /* شبه عادي */
+}
+
+.chat-main {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(255, 255, 255, 0.1); /* شفاف جداً */
+  border-radius: 10px;
+}
+
+.messages-container {
+  border: 1px solid #ccc;
+  flex: 1;
+  overflow-y: scroll;
+  margin-bottom: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.message {
+  align-self: flex-start;
+  background-color: rgba(255, 255, 255, 0.2); /* شفاف */
+  padding: 8px 12px;
+  border-radius: 10px;
+  margin: 5px 0;
+  max-width: 70%;
+  word-break: break-word;
+}
+
+.message.mine {
+  align-self: flex-end;
+  background-color: rgba(220, 248, 198, 0.3); /* شفاف */
+}
+
+.send-message {
+  display: flex;
+  margin-top: 10px;
+}
+
+.send-message input {
+  flex: 1;
+  margin-right: 5px;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #aaa;
+}
+
+.send-message button {
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
 }

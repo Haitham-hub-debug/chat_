@@ -218,35 +218,20 @@ useEffect(() => {
     }
   }, [messages]);
 
- return (
-  <div
-    className="chat-background"
-    style={{
-      backgroundImage: "url('https://images.unsplash.com/photo-1754756356063-103a6019f346?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHw2M3x8fGVufDB8fHx8fA%3D%3D')",
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      height: "100vh",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
-    <div style={{ display: "flex", width: "95%", height: "90%", backgroundColor: "rgba(255, 255, 255, 0.85)", borderRadius: "10px" }}>
-      
-      <div style={{ width: "250px", borderRight: "1px solid #ccc", padding: "10px" }}>
-      <h2>مرحبا، {username}!</h2>
+return (
+  <div className="chat-background">
+    <div className="chat-container">
 
-
-
-
-
+      {/* صندوق المستخدمين */}
+      <div className="chat-sidebar">
+        <h2>مرحبا، {username}!</h2>
         <label>حالتك:</label>
         <select
           value={currentStatus}
           onChange={(e) => {
             const newStatus = e.target.value;
             setCurrentStatus(newStatus);
-            localStorage.setItem("currentStatus", newStatus); // احفظ التغير
+            localStorage.setItem("currentStatus", newStatus);
             socket.emit("changeStatus", { userId: currentUserId, status: newStatus });
           }}
         >
@@ -256,68 +241,41 @@ useEffect(() => {
         </select>
 
         <h3>المستخدمون:</h3>
-        {allUsers
-          .filter((u) => u._id !== currentUserId)
-          .map((user) => (
-            <div key={user._id} onClick={() => setSelectedUserId(user._id)}
-              style={{ cursor: "pointer", fontWeight: selectedUserId === user._id ? "bold" : "normal", margin: "5px 0" }}>
-              {user.username} {user.status === "online" ? "✅" : user.status === "busy" ? "⏱️" : "❌"}
-            </div>
-          ))}
+        {allUsers.filter(u => u._id !== currentUserId).map(user => (
+          <div key={user._id} onClick={() => setSelectedUserId(user._id)}
+               className={selectedUserId === user._id ? "selected-user" : ""}>
+            {user.username} {user.status === "online" ? "✅" : user.status === "busy" ? "⏱️" : "❌"}
+          </div>
+        ))}
       </div>
 
-     
-      <div style={{ width: "250px", borderRight: "1px solid #ccc", padding: "10px" }}>
+      {/* صندوق المتصلين الآن */}
+      <div className="chat-sidebar">
         <h3>المتصلون الآن:</h3>
-        {allUsers
-          .filter(u => u._id !== currentUserId && u.status === "online")
-          .map(user => (
-            <div key={user._id} onClick={() => setSelectedUserId(user._id)}
-              style={{ cursor: "pointer", fontWeight: selectedUserId === user._id ? "bold" : "normal", margin: "5px 0" }}>
-              ✅ {user.username}
-            </div>
-          ))}
+        {allUsers.filter(u => u._id !== currentUserId && u.status === "online").map(user => (
+          <div key={user._id} onClick={() => setSelectedUserId(user._id)}
+               className={selectedUserId === user._id ? "selected-user" : ""}>
+            ✅ {user.username}
+          </div>
+        ))}
       </div>
 
-    
-      <div style={{ flex: 1, padding: "20px", display: "flex", flexDirection: "column" }}>
+      {/* صندوق المحادثة */}
+      <div className="chat-main">
         <h2>المحادثة</h2>
         <button onClick={handleLogout}>تسجيل الخروج</button>
-
         <h4>
           {selectedUserId
-            ? `الدردشة مع: ${allUsers.find((u) => u._id === selectedUserId)?.username || selectedUserId}`
+            ? `الدردشة مع: ${allUsers.find(u => u._id === selectedUserId)?.username || selectedUserId}`
             : "اختر مستخدمًا"}
         </h4>
 
-        <div
-          style={{
-            border: "1px solid #ccc",
-            flex: 1,
-            overflowY: "scroll",
-            marginBottom: "10px",
-            padding: "10px",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
+        <div className="messages-container">
           {messages.map((msg, i) => {
             const fromId = msg.from._id || msg.from;
             const isMine = fromId === currentUserId;
-
             return (
-              <div
-                key={i}
-                style={{
-                  alignSelf: isMine ? "flex-end" : "flex-start",
-                  backgroundColor: isMine ? "#dcf8c6" : "#fff",
-                  padding: "8px 12px",
-                  borderRadius: "10px",
-                  margin: "5px 0",
-                  maxWidth: "70%",
-                  wordBreak: "break-word",
-                }}
-              >
+              <div key={i} className={isMine ? "message mine" : "message"}>
                 <strong>{isMine ? "أنا" : msg.fromName || "مستخدم"}:</strong> {msg.content}
               </div>
             );
@@ -325,19 +283,19 @@ useEffect(() => {
           <div ref={chatEndRef}></div>
         </div>
 
-        <div style={{ display: "flex", marginTop: "10px" }}>
+        <div className="send-message">
           <input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="اكتب رسالة..."
-            style={{ flex: 1, marginRight: "5px", padding: "8px", borderRadius: "5px", border: "1px solid #aaa" }}
           />
-          <button onClick={handleSend} style={{ padding: "10px", borderRadius: "5px", backgroundColor: "#4caf50", color: "white", border: "none" }}>إرسال</button>
+          <button onClick={handleSend}>إرسال</button>
         </div>
       </div>
     </div>
   </div>
 );
+
 
 };
 
