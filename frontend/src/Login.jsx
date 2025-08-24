@@ -22,6 +22,7 @@ export default function Login() {
         password,
       });
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("username", res.data.username)
       navigate("/chat");
     } catch (err) {
       console.error(err);
@@ -33,7 +34,12 @@ export default function Login() {
 
 
 
- 
+     <div
+      className="login-background"
+      style={{
+        backgroundImage: `url('https://png.pngtree.com/background/20230520/original/pngtree-3d-geometric-patterns-abstract-art-wallpapers-picture-image_2673760.jpg')`,
+      }}
+    >
 
 
     <div className="login-container">
@@ -76,6 +82,6 @@ export default function Login() {
 
       {showFPass && <F_pass />}
     </div>
-    
+    </div>
   );
 }

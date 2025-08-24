@@ -7,7 +7,7 @@ import "./styles/chat.css";
 const Chat = () => {
   const navigate = useNavigate();
 
-  // ✅ المتغيرات
+  //  المتغيرات
   const [socket, setSocket] = useState(null);
   const [token] = useState(localStorage.getItem("token"));
   const [currentUserId, setCurrentUserId] = useState("");
@@ -18,11 +18,20 @@ const Chat = () => {
   const [newMessage, setNewMessage] = useState("");
   const [allUsers, setAllUsers] = useState([]);
   const chatEndRef = useRef(null);
+ 
+  
+const [username, setUsername] = useState(localStorage.getItem("username") || "");
 
-  // ✅ فك التوكن للحصول على الـ userId
+
+
+
+
+  
   useEffect(() => {
     if (!token) {
       navigate("/");
+    
+
       return;
     }
     try {
@@ -34,7 +43,7 @@ const Chat = () => {
     }
   }, [token, navigate]);
 
-  // ✅ إنشاء socket مرّة وحدة + listeners
+  //  إنشاء socket مرّة وحدة + listeners
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -73,8 +82,8 @@ const Chat = () => {
     };
   }, [currentUserId, selectedUserId]);
 
-  // ✅ جلب المستخدمين
-  // 🔹 3. جلب جميع المستخدمين عند تحميل الصفحة
+  //  جلب المستخدمين
+ 
 useEffect(() => {
   if (!token)
      return;
@@ -92,7 +101,7 @@ useEffect(() => {
 }, [token]);
 
 
-// 🔹 4. socket مسؤول فقط عن تحديث حالة الأونلاين
+
 useEffect(() => {
   if (!socket || !currentUserId) return;
 
@@ -103,6 +112,7 @@ useEffect(() => {
       prev.map((u) => (u._id === updatedUser._id ? { ...u, status: updatedUser.status } : u))
     );
   };
+ 
 
   const handleOnlineUsers = (users) => {
     setAllUsers((prev) =>
@@ -129,9 +139,12 @@ useEffect(() => {
 
   if (me) {
     setCurrentStatus(me.status || "offline");
-    localStorage.setItem("currentStatus", me.status || "offline"); // تحديث آخر حالة
+    localStorage.setItem("currentStatus", me.status || "offline");// تحديث آخر حالة
+    
+  
+    setUsername(me.username);
   } else {
-    // لو المستخدم غير موجود بعد، استرجع الحالة من localStorage
+     const savedName = localStorage.getItem("username");
     const savedStatus = localStorage.getItem("currentStatus");
     if (savedStatus) setCurrentStatus(savedStatus);
   }
@@ -139,9 +152,8 @@ useEffect(() => {
 
 
 
-  // ✅ جلب الرسائل عند اختيار مستخدم
-  // جلب الرسائل مع تحديث fromName بعد تحميل المستخدمين
-// جلب الرسائل وربط اسم المرسل
+  
+// جلب الرسائلل
 useEffect(() => {
   const fetchMessages = async () => {
     if (!currentUserId || !selectedUserId || allUsers.length === 0) return;
@@ -168,7 +180,7 @@ useEffect(() => {
 }, [currentUserId, selectedUserId, allUsers]);
 
 
-  // ✅ إرسال رسالة
+  //  إرسال رسالة
   const handleSend = () => {
     if (!newMessage.trim()) return;
     if (!selectedUserId) {
@@ -183,13 +195,15 @@ useEffect(() => {
     };
 
     socket.emit("sendMessage", msg);
-    setNewMessage(""); // ما نضيفها يدوي → تجي من السيرفر فقط
+    setNewMessage(""); 
   };
 
-  // ✅ تسجيل الخروج
+  //  تسجيل الخروج
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("selectedUserId");
+    localStorage.setItem("username",username); // بعد تسجيل الدخول
+
     if (socket) {
       socket.emit("logout", currentUserId);
       socket.disconnect();
@@ -197,7 +211,7 @@ useEffect(() => {
     navigate("/");
   };
 
-  // ✅ scroll لآخر رسالة
+ 
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -208,7 +222,7 @@ useEffect(() => {
   <div
     className="chat-background"
     style={{
-      backgroundImage: "url('https://images.unsplash.com/photo-1755134148354-bddce4c93ad8?q=80&w=687&auto=format&fit=crop')",
+      backgroundImage: "url('https://images.unsplash.com/photo-1754756356063-103a6019f346?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHw2M3x8fGVufDB8fHx8fA%3D%3D')",
       backgroundSize: "cover",
       backgroundPosition: "center",
       height: "100vh",
@@ -218,9 +232,13 @@ useEffect(() => {
     }}
   >
     <div style={{ display: "flex", width: "95%", height: "90%", backgroundColor: "rgba(255, 255, 255, 0.85)", borderRadius: "10px" }}>
-      {/* ===== العمود الأول: المستخدمين ===== */}
+      
       <div style={{ width: "250px", borderRight: "1px solid #ccc", padding: "10px" }}>
-        <h2>مرحبا، {allUsers.find((u) => u._id === currentUserId)?.username }!</h2>
+      <h2>مرحبا، {username}!</h2>
+
+
+
+
 
         <label>حالتك:</label>
         <select
@@ -248,7 +266,7 @@ useEffect(() => {
           ))}
       </div>
 
-      {/* ===== العمود الثاني: المستخدمين المتصلين ===== */}
+     
       <div style={{ width: "250px", borderRight: "1px solid #ccc", padding: "10px" }}>
         <h3>المتصلون الآن:</h3>
         {allUsers
@@ -261,7 +279,7 @@ useEffect(() => {
           ))}
       </div>
 
-      {/* ===== مساحة المحادثة ===== */}
+    
       <div style={{ flex: 1, padding: "20px", display: "flex", flexDirection: "column" }}>
         <h2>المحادثة</h2>
         <button onClick={handleLogout}>تسجيل الخروج</button>
